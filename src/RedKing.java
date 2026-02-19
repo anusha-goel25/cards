@@ -1,47 +1,67 @@
+import java.util.Collections;
+
 import processing.core.PApplet;
 
-public class Uno extends CardGame {
+public class RedKing extends CardGame {
     // Uno-specific state
-    UnoComputer computerPlayer;
+    RedKingComputer computerPlayer;
     boolean choosingWildColor = false;
-    UnoCard pendingWildCard;
+    RedKingCard pendingWildCard;
     ClickableRectangle[] wildColorButtons;
     int wildButtonSize = 24;
     int wildCenterX = 300;
     int wildCenterY = 300;
-    static String[] colors = { "Red", "Yellow", "Green", "Blue" };
-    static String[] values = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Skip", "Reverse", "Draw Two" };
+    static String[] colors = { "Hearts", "Diamonds", "Clovers", "Spades" };
+    static String[] values = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King", "Ace" };
 
-    public Uno() {
+    public RedKing() {
         initializeGame();
     }
 
     @Override
     protected void createDeck() {
-        // Create deck (Uno has 108 cards)
-        // Create standard cards (2 of each color/value combination except 0)
+        // Create deck (Red King uses a standard 52 card deck)
         for (String color : colors) {
-            deck.add(createCard(color, "0")); // One 0 card per color
             for (String value : values) {
-                if (!value.equals("0")) {
-                    deck.add(createCard(color, value));
-                    deck.add(createCard(color, value)); // Two of each
+                if (value == "Jack") {
+                    deck.add(createCard(color, "Jack", 11));
+                } else if (value == "Queen") {
+                    deck.add(createCard(color, "Queen", 12));
+                } else if (value == "King" && (color == "Hearts" || color == "Diamonds")) {
+                    deck.add(createCard(color, "King", 0));
+                } else if (value == "King" && (color == "Spades" || color == "Clovers")) {
+                    deck.add(createCard(color, "King", 13));
+                } else if (value == "Ace") {
+                    deck.add(createCard(color, "Ace", 1));
+                } else {
+                    deck.add(createCard(color, value, Integer.parseInt(value)));
                 }
             }
         }
-        // Add wild cards (4 of each type)
-        for (int i = 0; i < 4; i++) {
-            // suit, value
-            deck.add(createCard("Wild", "Wild"));
-            deck.add(createCard("Wild", "Draw Four"));
+    }
+
+ 
+    protected void dealCards(int numCards){
+        Collections.shuffle(deck);
+        for (int j = 0; j < numCards; j++){
+            Card newcard = deck.remove(0);
+            newcard.setTurned(true);
+            playerOneHand.addCard(newcard);
+
+            Card newcardcomputer = deck.remove(0);
+            newcardcomputer.setTurned(true);
+            playerTwoHand.addCard(newcardcomputer);
         }
+
+        playerOneHand.positionCardsInGrid(20, 270, 80, 120, 130, 2);
+        playerTwoHand.positionCardsInGrid(370, 50, 80, 120, 130,2);
     }
 
     @Override
     protected void initializeGame() {
         super.initializeGame();
-        computerPlayer = new UnoComputer();
-        dealCards(7);
+        computerPlayer = new RedKingComputer();
+        dealCards(4);
         // Place first card on discard pile
         lastPlayedCard = deck.remove(0);
         if (lastPlayedCard.suit.equals("Wild")) {
@@ -54,14 +74,15 @@ public class Uno extends CardGame {
         initializeWildColorButtons();
     }
 
-    private UnoCard createCard(String suit, String value) {
-        UnoCard card = new UnoCard(suit, value); // Image loading can be added later
+    private RedKingCard createCard(String suit, String value, int points) {
+        RedKingCard card = new RedKingCard(suit, value, points); // Image loading can be added later
         card.suit = suit;
         card.value = value;
+        card.points = points;
         return card;
     }
 
-    @Override 
+    @Override
     public boolean playCard(Card card, Hand hand) {
         super.playCard(card, hand);
         handleSpecialCards(card);
@@ -71,13 +92,14 @@ public class Uno extends CardGame {
     private void handleSpecialCards(Card card) {
         if (card.value.equals("Skip") || card.value.equals("Reverse")) {
             // right now this only supports 2 players, so Reverse is the same as Skip
-            System.out.println("Skipping opponent's turn"); 
+            System.out.println("Skipping opponent's turn");
             switchTurns(); // Skip opponent's turn
         } else if (card.value.startsWith("Draw ")) {
             System.out.println("Skipping opponent's turn");
             int drawNum = "Draw Two".equals(card.value) ? 2 : 4;
             for (int i = 0; i < drawNum; i++) {
-                // refactored into superclass, assuming you've already switched turns to the opponent
+                // refactored into superclass, assuming you've already switched turns to the
+                // opponent
                 drawCard(playerOneTurn ? playerOneHand : playerTwoHand);
             }
             switchTurns();
@@ -94,13 +116,13 @@ public class Uno extends CardGame {
 
     @Override
     protected boolean isValidPlay(Card card) {
-        UnoCard unoCard = (UnoCard) card;
+        RedKingCard unoCard = (RedKingCard) card;
         // Wild cards are always valid
         if (unoCard.suit.equals("Wild")) {
             return true;
         }
         // Card must match suit or value of last played card
-        UnoCard lastUno = (UnoCard) lastPlayedCard;
+        RedKingCard lastUno = (RedKingCard) lastPlayedCard;
         return unoCard.suit.equals(lastUno.suit) ||
                 unoCard.value.equals(lastUno.value);
     }
@@ -111,7 +133,7 @@ public class Uno extends CardGame {
             handleWildChooserClick(mouseX, mouseY);
             return;
         }
-        UnoCard clickedCard = (UnoCard) getClickedCard(mouseX, mouseY);
+        RedKingCard clickedCard = (RedKingCard) getClickedCard(mouseX, mouseY);
         if (clickedCard == null) {
             return;
         }
@@ -125,11 +147,11 @@ public class Uno extends CardGame {
         if (clickedCard == selectedCard) {
             System.out.println("playing card: " + selectedCard.value + " of " + selectedCard.suit);
             if ("Wild".equals(selectedCard.suit)) {
-                pendingWildCard = (UnoCard) selectedCard;
+                pendingWildCard = (RedKingCard) selectedCard;
                 choosingWildColor = true;
                 return;
             }
-            if (playCard((UnoCard) selectedCard, playerOneHand)) {
+            if (playCard((RedKingCard) selectedCard, playerOneHand)) {
                 selectedCard.setSelected(false, selectedCardRaiseAmount);
                 selectedCard = null;
             }
@@ -143,10 +165,10 @@ public class Uno extends CardGame {
 
     @Override
     public void handleComputerTurn() {
-        UnoCard choice = computerPlayer.playCard(playerTwoHand, (UnoCard) lastPlayedCard);
+        RedKingCard choice = computerPlayer.playCard(playerTwoHand, (RedKingCard) lastPlayedCard);
         if (choice == null) {
             drawCard(playerTwoHand);
-            playerTwoHand.getCard(0).setTurned(true);
+            playerTwoHand.getCard(0).setTurned(false);
             System.out.println("player two draws");
             switchTurns();
             return;

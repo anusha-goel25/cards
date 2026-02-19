@@ -1,12 +1,24 @@
 import processing.core.PApplet;
 
-public class UnoCard extends Card {
-    public UnoCard(String value, String suit) {
+public class RedKingCard extends Card {
+    public int points;
+
+    public RedKingCard(String value, String suit, int points) {
         super(value, suit);
+        this.points = points;
+    }
+
+    public int getPoints() {
+        return points;
     }
 
     @Override
     public void draw(PApplet sketch) {
+        // if the card is turned down, it won't display the number
+        if (turned) {
+            super.draw(sketch); 
+            return;
+        }
         super.draw(sketch);
         // set card color based on suit
         switch (suit) {
@@ -28,7 +40,7 @@ public class UnoCard extends Card {
         }
         sketch.rect(x, y, width, height);
 
-        // text 
+        // text
         if (suit == "Blue") {
             sketch.fill(255);
         } else {
