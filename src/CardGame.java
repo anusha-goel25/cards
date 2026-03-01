@@ -124,6 +124,16 @@ public class CardGame {
         playerTwoHand.positionCards(50, 50, 80, 120, 20);
     }
 
+    public void turnCardsOver() {
+        playerOneHand.getCard(0).setTurned(false);
+        playerOneHand.getCard(1).setTurned(false);
+    }
+
+    public void turnCardsAgain() {
+        playerOneHand.getCard(0).setTurned(true);
+        playerOneHand.getCard(1).setTurned(true);
+    }
+
     public String getCurrentPlayer() {
         return playerOneTurn ? "Player One" : "Player Two";
     }

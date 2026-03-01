@@ -1,9 +1,10 @@
 import processing.core.PApplet;
 
 public class App extends PApplet {
-
+    int secs = 0;
     CardGame cardGame = new RedKing();
     private int timer;
+
 
     public static void main(String[] args) {
         PApplet.main("App");
@@ -17,6 +18,12 @@ public class App extends PApplet {
     public void draw() {
         background(255);
         // Draw player hands
+        cardGame.turnCardsAgain();
+        if (secs < 100){
+            cardGame.turnCardsOver();
+        }
+        secs++;
+
         for (int i = 0; i < cardGame.playerOneHand.getSize(); i++) {
             Card card = cardGame.playerOneHand.getCard(i);
             if (card != null) {
