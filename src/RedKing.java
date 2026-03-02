@@ -7,10 +7,12 @@ public class RedKing extends CardGame {
     boolean chooseDrawDecision = false;
     boolean chooseSwapCard = false;
     boolean chooseQueenSwapCard = false;
+    boolean chooseQueenSwapGiveaway = false;
     boolean chooseJackLook = false;
     RedKingCard cardDrawn;
-    RedKingCard cardToLookAt;
-    RedKingCard pendingWildCard;
+    RedKingCard lookCard;
+    RedKingCard pendingQueenSwapCard;
+    int timer = 0;
 
     ClickableRectangle[] ChoiceButtons;
     static String[] ChoiceLabels = { "Discard", "Switch" };
@@ -70,6 +72,7 @@ public class RedKing extends CardGame {
         super.initializeGame();
         computerPlayer = new RedKingComputer();
         dealCards(4);
+        deck.add(1, createCard("Hearts","Jack",11));
         // Place first card on discard pile
         lastPlayedCard = deck.remove(0);
         if (lastPlayedCard.suit.equals("Wild")) {
@@ -114,10 +117,10 @@ public class RedKing extends CardGame {
     }
 
     private void handleSpecialCards(Card card) {
-        if (card.value == "Queen") {
+        if (card.value.equals("Queen")) {
             System.out.println("Switch one of your cards with someone else'");
             chooseQueenSwapCard = true;
-        } else if (card.value == "Jack") {
+        } else if (card.value.equals("Jack")) {
             System.out.println("You can look at one of your cards");
             chooseJackLook = true;
         }
@@ -125,6 +128,11 @@ public class RedKing extends CardGame {
 
     @Override
     public void handleDrawButtonClick(int mouseX, int mouseY) {
+        System.out.println("drawButton x=" + drawButton.x + " y=" + drawButton.y + " w=" + drawButton.width + " h="
+                + drawButton.height);
+        if (!drawButton.isClicked(mouseX, mouseY)) {
+            return;
+        }
         // making sure that if you click draw during another choice time, you won't mess
         // up the game
         if (choiceInProgress()) {
@@ -139,10 +147,13 @@ public class RedKing extends CardGame {
         // Basically making a temporary hand to hold the cards in the same way that the
         // original class does
         // before transferring the cards to the permanent hand (this will happen in
-        // chooseDrawDecision which is turned on here)
+        // drawChoices once chooseDrawDecision is turned on)
         Hand temporary = new Hand();
         drawCard(temporary);
         cardDrawn = (RedKingCard) temporary.getCard(0);
+        if (cardDrawn == null) {
+            return;
+        }
         cardDrawn.setTurned(false);
         cardDrawn.setPosition(220, 350, 80, 120);
         chooseDrawDecision = true;
@@ -152,7 +163,7 @@ public class RedKing extends CardGame {
     // Makes sure that if you're in the middle of making a choice, you can't
     // accidentally click on something random
     private boolean choiceInProgress() {
-        return chooseDrawDecision || chooseQueenSwapCard || chooseJackLook || chooseJackLook;
+        return chooseDrawDecision || chooseSwapCard || chooseQueenSwapCard || chooseQueenSwapGiveaway || chooseJackLook;
     }
 
     @Override
@@ -174,7 +185,10 @@ public class RedKing extends CardGame {
             return;
         }
         if (chooseQueenSwapCard) {
-            handleQueenSwapTarget(mouseX, mouseY);
+            handleQueenChooseTarget(mouseX, mouseY);
+            return;
+        }
+        if (chooseQueenSwapGiveaway) {
             handleQueenSwapGiveaway(mouseX, mouseY);
             return;
         }
@@ -214,7 +228,7 @@ public class RedKing extends CardGame {
             cardDrawn = null;
             chooseDrawDecision = false;
 
-            // making sure that special cards can still be used
+            // making sure that special cards can be used
             handleSpecialCards(lastPlayedCard);
             if (!chooseQueenSwapCard && !chooseJackLook) {
                 switchTurns();
@@ -225,20 +239,76 @@ public class RedKing extends CardGame {
         }
     }
 
-    public void handleQueenSwapTarget(int mouseX, int mouseY) {
+    public void handleSwapClick(int mouseX, int mouseY) {
         RedKingCard clickedCard = (RedKingCard) getClickedCard(mouseX, mouseY);
+        System.out.println("handleSwapClick called, clickedCard=" + clickedCard);
+        if (clickedCard == null) {
+            return;
+        }
+        playerOneHand.removeCard(clickedCard);
+        discardPile.add(clickedCard);
+        clickedCard.setTurned(false);
+        lastPlayedCard = clickedCard;
+
+        cardDrawn.setTurned(true);
+        playerOneHand.addCard(cardDrawn);
+        cardDrawn = null;
+        chooseSwapCard = false;
+        switchTurns();
+
+        playerOneHand.positionCardsInGrid(20, 270, 80, 120, 130, 2);
+        playerTwoHand.positionCardsInGrid(370, 50, 80, 120, 130, 2);
+    }
+
+    public void handleQueenChooseTarget(int mouseX, int mouseY) {
+        for (int i = 0; i < playerTwoHand.getSize(); i++) {
+            Card snatchedCard = playerTwoHand.getCard(i);
+            if (snatchedCard != null && snatchedCard.isClicked(mouseX, mouseY)) {
+                // adjusting the pendingWild variable so that it instead holds the
+                // QueenSwapTarget chosen for the switch
+                // so that it can be used in QueenSwapGiveaway
+                pendingQueenSwapCard = (RedKingCard) snatchedCard;
+                chooseQueenSwapCard = false;
+                chooseQueenSwapGiveaway = true;
+                return;
+            }
+        }
     }
 
     public void handleQueenSwapGiveaway(int mouseX, int mouseY) {
         RedKingCard clickedCard = (RedKingCard) getClickedCard(mouseX, mouseY);
-    }
+        if (clickedCard == null) {
+            return;
+        }
+        playerOneHand.removeCard(clickedCard);
+        playerTwoHand.removeCard(pendingQueenSwapCard);
+        playerTwoHand.addCard(clickedCard);
+        playerOneHand.addCard(pendingQueenSwapCard);
 
-    public void handleSwapClick(int mouseX, int mouseY) {
-        RedKingCard clickedCard = (RedKingCard) getClickedCard(mouseX, mouseY);
+        clickedCard.setTurned(true);
+        pendingQueenSwapCard.setTurned(true);
+        pendingQueenSwapCard = null;
+        chooseQueenSwapGiveaway = false;
+        switchTurns();
+
+        playerOneHand.positionCardsInGrid(20, 270, 80, 120, 130, 2);
+        playerTwoHand.positionCardsInGrid(370, 50, 80, 120, 130, 2);
+
     }
 
     public void handleJackLook(int mouseX, int mouseY) {
         RedKingCard clickedCard = (RedKingCard) getClickedCard(mouseX, mouseY);
+        if (clickedCard == null) {
+            return;
+        }
+        lookCard = clickedCard;
+        lookCard.setTurned(false);
+
+        // timer is initialized here, but the actual counting down happens in
+        // drawChoices to use the frames
+        timer = 120;
+        chooseJackLook = false;
+        switchTurns();
     }
 
     @Override
@@ -246,7 +316,6 @@ public class RedKing extends CardGame {
         RedKingCard choice = computerPlayer.playCard(playerTwoHand, (RedKingCard) lastPlayedCard);
         if (choice == null) {
             drawCard(playerTwoHand);
-            playerTwoHand.getCard(0).setTurned(false);
             System.out.println("player two draws");
             switchTurns();
             return;
@@ -263,18 +332,33 @@ public class RedKing extends CardGame {
     }
 
     // For making/initializing the draw choice buttons,
-    // I basically use the same exact logic that was used to make wild buttons in UNO
-    // the only main changes are that I hard coded the positioning + drew buttons directly in drawChoices
-    // https://processing.org/reference - used this to refresh my memory on processing syntax
+    // I basically use the same exact logic that was used to make wild buttons in
+    // UNO
+    // the only main changes are that I hard coded the positioning + drew buttons
+    // directly in drawChoices
+    // https://processing.org/reference - used this to refresh my memory on
+    // processing syntax
 
     @Override
     public void drawChoices(PApplet app) {
+        // running the timer during the jackLook
+        if (lookCard != null && timer > 0) {
+            timer = timer - 1;
+            if (timer <= 0) {
+                lookCard.setTurned(true);
+                lookCard = null;
+            }
+        }
+        
         if (!chooseDrawDecision) {
             return;
         }
+        // drawing the card that you've just drawn
+        cardDrawn.draw(app);
         app.push();
         app.textSize(14);
         app.textAlign(app.CENTER, app.CENTER);
+        // drawing the buttons
         for (int i = 0; i < ChoiceButtons.length; i++) {
             ClickableRectangle button = ChoiceButtons[i];
             app.fill(200);
@@ -283,7 +367,6 @@ public class RedKing extends CardGame {
             app.text(ChoiceLabels[i], button.x + button.width / 2, button.y + button.height / 2);
         }
         app.pop();
-
     }
 
     private void initializeDrawChoiceButtons() {

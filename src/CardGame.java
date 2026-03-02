@@ -125,14 +125,22 @@ public class CardGame {
     }
 
     public void turnCardsOver() {
+    if (playerOneHand.getCard(0) != null){
         playerOneHand.getCard(0).setTurned(false);
+    }
+    if (playerOneHand.getCard(1) != null){
         playerOneHand.getCard(1).setTurned(false);
-    }
+    } 
+}
 
-    public void turnCardsAgain() {
+public void turnCardsAgain() {
+    if (playerOneHand.getCard(0) != null){
         playerOneHand.getCard(0).setTurned(true);
-        playerOneHand.getCard(1).setTurned(true);
     }
+    if (playerOneHand.getCard(1) != null){
+        playerOneHand.getCard(1).setTurned(true);
+    } 
+}
 
     public String getCurrentPlayer() {
         return playerOneTurn ? "Player One" : "Player Two";
