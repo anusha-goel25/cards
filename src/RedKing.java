@@ -72,7 +72,6 @@ public class RedKing extends CardGame {
         super.initializeGame();
         computerPlayer = new RedKingComputer();
         dealCards(4);
-        deck.add(1, createCard("Hearts","Jack",11));
         // Place first card on discard pile
         lastPlayedCard = deck.remove(0);
         if (lastPlayedCard.suit.equals("Wild")) {
@@ -86,6 +85,12 @@ public class RedKing extends CardGame {
 
     @Override
     public void switchTurns() {
+        if (playerOneHand.getSize() == 0){
+            endGame();
+        }
+        else if (playerTwoHand.getSize() == 0){
+            endGame();
+        }
         playerOneTurn = !playerOneTurn;
         playerOneHand.positionCardsInGrid(20, 270, 80, 120, 130, 2);
         playerTwoHand.positionCardsInGrid(370, 50, 80, 120, 130, 2);
@@ -161,7 +166,7 @@ public class RedKing extends CardGame {
     }
 
     // Makes sure that if you're in the middle of making a choice, you can't
-    // accidentally click on something random
+    // accidentally click on something random and also tells you what choice is happening
     private boolean choiceInProgress() {
         return chooseDrawDecision || chooseSwapCard || chooseQueenSwapCard || chooseQueenSwapGiveaway || chooseJackLook;
     }
@@ -169,6 +174,7 @@ public class RedKing extends CardGame {
     @Override
     protected boolean isValidPlay(Card card) {
         RedKingCard redkingCard = (RedKingCard) card;
+
         // the card needs to match the value of last played card
         RedKingCard lastRedKing = (RedKingCard) lastPlayedCard;
         return redkingCard.value.equals(lastRedKing.value);
@@ -176,6 +182,23 @@ public class RedKing extends CardGame {
 
     @Override
     public void handleCardClick(int mouseX, int mouseY) {
+        if (!choiceInProgress()){
+            RedKingCard clickedCard = (RedKingCard) getClickedCard(mouseX, mouseY);
+            // if it's the same number you get to get rid of a card
+            if (isValidPlay(clickedCard)){
+                playerOneHand.removeCard(clickedCard);
+                discardPile.add(clickedCard);
+                lastPlayedCard = clickedCard;
+                switchTurns();
+                return;          
+            // if it's not the same number, you gain an additional card
+            } else {
+                drawCard(playerOneHand);
+                switchTurns();
+                return;
+            }
+        }
+
         if (chooseDrawDecision) {
             handleDrawCardClick(mouseX, mouseY);
             return;
@@ -255,9 +278,6 @@ public class RedKing extends CardGame {
         cardDrawn = null;
         chooseSwapCard = false;
         switchTurns();
-
-        playerOneHand.positionCardsInGrid(20, 270, 80, 120, 130, 2);
-        playerTwoHand.positionCardsInGrid(370, 50, 80, 120, 130, 2);
     }
 
     public void handleQueenChooseTarget(int mouseX, int mouseY) {
@@ -290,10 +310,6 @@ public class RedKing extends CardGame {
         pendingQueenSwapCard = null;
         chooseQueenSwapGiveaway = false;
         switchTurns();
-
-        playerOneHand.positionCardsInGrid(20, 270, 80, 120, 130, 2);
-        playerTwoHand.positionCardsInGrid(370, 50, 80, 120, 130, 2);
-
     }
 
     public void handleJackLook(int mouseX, int mouseY) {
@@ -313,31 +329,61 @@ public class RedKing extends CardGame {
 
     @Override
     public void handleComputerTurn() {
-        RedKingCard choice = computerPlayer.playCard(playerTwoHand, (RedKingCard) lastPlayedCard);
-        if (choice == null) {
-            drawCard(playerTwoHand);
-            System.out.println("player two draws");
+        // The game ends if the deck is empty
+        if (deck.isEmpty()) {
+            endGame();
+            return;
+        }
+        // first the computer needs to check if it can get rid of a card
+        RedKingCard discardCard = computerPlayer.permanentDiscard(playerTwoHand, (RedKingCard) lastPlayedCard);
+        if (discardCard != null) {
+            playerTwoHand.removeCard(discardCard);
+            computerPlayer.cardIsRemoved(discardCard);
+            discardCard.setTurned(false);
+            discardPile.add(discardCard);
+            lastPlayedCard = discardCard;
             switchTurns();
             return;
         }
-        if (playCard(choice, playerTwoHand)) {
-            if ("Wild".equals(choice.suit)) {
-                choice.suit = computerPlayer.chooseComputerWildColor(playerTwoHand);
-            }
-            playerOneHand.positionCardsInGrid(20, 270, 80, 120, 130, 2);
-            playerTwoHand.positionCardsInGrid(370, 50, 80, 120, 130, 2);
-        } else {
-            System.out.println("ERROR, player two / computer chose an invalid play");
+        // basically the same as the earlier code for the player
+        // creates a temporary hadn while the computer decides what to do
+        Hand temporary = new Hand();
+        drawCard(temporary);
+        cardDrawn = (RedKingCard) temporary.getCard(0);
+        computerPlayer.addKnownCard(cardDrawn);
+        cardDrawn.setPosition(220, 350, 80, 120);
+
+        RedKingCard swapCard = computerPlayer.decideToSwap(playerTwoHand,cardDrawn);
+
+        // basically if it found a card to swap with it will do the swap
+        // decideToSwap is written so that if it chooses nothing it will return null,
+        // so whenever it is not null that means that a swap needs to occur
+        if (swapCard != null){
+            System.out.println("The computer chose to swap its card");
+            playerTwoHand.removeCard(swapCard);
+            computerPlayer.cardIsRemoved(swapCard);
+
+            discardPile.add(swapCard);
+            swapCard.setTurned(false);
+            lastPlayedCard = swapCard;
+
+            cardDrawn.setTurned(true);
+            playerTwoHand.addCard(cardDrawn);
+
         }
+        else if (swapCard == null){
+            System.out.println("The computer chose to discard its card");
+            discardPile.add(cardDrawn);
+            cardDrawn.setTurned(false);
+            lastPlayedCard = cardDrawn;
+        }
+        switchTurns();
     }
 
     // For making/initializing the draw choice buttons,
-    // I basically use the same exact logic that was used to make wild buttons in
-    // UNO
-    // the only main changes are that I hard coded the positioning + drew buttons
-    // directly in drawChoices
-    // https://processing.org/reference - used this to refresh my memory on
-    // processing syntax
+    // I basically use the same exact logic that was used to make wild buttons in UNO
+    // the only main changes are that I hard coded the positioning + drew buttons directly in drawChoices
+    // https://processing.org/reference - used this to refresh my memory on processing syntax
 
     @Override
     public void drawChoices(PApplet app) {
@@ -349,7 +395,7 @@ public class RedKing extends CardGame {
                 lookCard = null;
             }
         }
-        
+
         if (!chooseDrawDecision) {
             return;
         }
@@ -382,5 +428,38 @@ public class RedKing extends CardGame {
         button.width = choiceButtonWidth;
         button.height = choiceButtonHeight;
         return button;
+    }
+
+    // lets you calculate 
+    public int calculatePoints(Hand hand){
+        int totalPoints = 0;
+        for (int i = 0; i < hand.getSize(); i++){
+            RedKingCard currentCard = (RedKingCard) hand.getCard(i);
+            totalPoints = totalPoints + currentCard.points;
+        }
+        return totalPoints;
+    }
+
+    // code to end the game turns the cards over, calculates the total points for each player, and determines a winner
+    public void endGame(){
+        for (int i = 0; i < playerOneHand.getSize(); i++){
+            playerOneHand.getCard(i).setTurned(false);
+        }
+        for (int i = 0; i < playerTwoHand.getSize(); i++){
+            playerTwoHand.getCard(i).setTurned(false);
+        }
+
+        int playerPoints = calculatePoints(playerOneHand);
+        int computerPoints = calculatePoints(playerTwoHand);
+
+        if (playerPoints < computerPoints){
+            System.out.println("Computer Wins :(");
+        }
+        else if (playerPoints == computerPoints){
+            System.out.println("Tie!");
+        }
+        else if (playerPoints > computerPoints){
+            System.out.println("You Win :)");
+        }
     }
 }
