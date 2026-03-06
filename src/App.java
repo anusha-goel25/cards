@@ -11,7 +11,7 @@ public class App extends PApplet {
     }
     @Override
     public void settings() {
-        size(600, 600);   
+        size(600, 800);   
     }
 
     @Override
@@ -55,7 +55,7 @@ public class App extends PApplet {
                 height - 20);
         // Display last played card
         if (cardGame.getLastPlayedCard() != null) {
-            cardGame.getLastPlayedCard().setPosition(width / 2 - 40, height / 2 - 60, 80, 120);
+            cardGame.getLastPlayedCard().setPosition(width / 2 - 40, height / 2 - 150, 80, 120);
             cardGame.getLastPlayedCard().draw(this);
         }
         if (cardGame.getCurrentPlayer() == "Player Two") {

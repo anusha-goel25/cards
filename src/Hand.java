@@ -1,7 +1,7 @@
 import java.util.ArrayList;
 
 public class Hand {
-    private ArrayList<Card> cards;
+    public ArrayList<Card> cards;
     
     public Hand() {
         cards = new ArrayList<>();
@@ -39,6 +39,7 @@ public class Hand {
     
     public void positionCardsInGrid(int startX, int startY, int cardWidth, int cardHeight, int spacing, int cardsPerRow) {
         for (int i = 0; i < cards.size(); i++) {
+            if (cards.get(i) == null) continue;
             int row = i / cardsPerRow;
             int col = i % cardsPerRow;
             int x = startX + (col * spacing);
