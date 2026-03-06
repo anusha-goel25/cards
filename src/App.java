@@ -14,6 +14,12 @@ public class App extends PApplet {
         size(600, 800);   
     }
 
+    // setup is used at the start of the game to load all the card images
+    @Override
+    public void setup() {
+        ((RedKing) cardGame).loadImages(this);
+    }
+
     @Override
     public void draw() {
         background(255);
@@ -39,7 +45,7 @@ public class App extends PApplet {
         }
         
         // Draw draw button
-        fill(200);
+        fill(247, 106, 106);
         cardGame.drawButton.draw(this);
         fill(0);
         textAlign(CENTER, CENTER);

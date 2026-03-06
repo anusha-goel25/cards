@@ -2,6 +2,8 @@ import java.util.Collections;
 
 import processing.core.PApplet;
 
+import processing.core.PImage;
+
 public class RedKing extends CardGame {
     RedKingComputer computerPlayer;
     boolean chooseDrawDecision = false;
@@ -25,12 +27,36 @@ public class RedKing extends CardGame {
     static int choiceButtonHeight = 35;
     ClickableRectangle endButton = new ClickableRectangle();
 
-    static String[] colors = { "Hearts", "Diamonds", "Clovers", "Spades" };
+    static String[] colors = { "Heart", "Diamond", "Clover", "Spade" };
     static String[] values = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King", "Ace" };
+
+    PImage cardBack;
 
     public RedKing() {
         initializeGame();
     }
+
+    public void loadImages(PApplet app){
+        cardBack = app.loadImage("data/CardBack.png");
+        RedKingCard.cardBack = cardBack;
+        for (int i = 0; i < deck.size(); i++){
+            loadCardImage(app, (RedKingCard) deck.get(i));
+        }
+        for (int i = 0; i < playerOneHand.getSize(); i++) {
+            loadCardImage(app, (RedKingCard) playerOneHand.getCard(i));
+        }
+        for (int i = 0; i < playerTwoHand.getSize(); i++) {
+            loadCardImage(app, (RedKingCard) playerTwoHand.getCard(i));
+        }
+        loadCardImage(app, (RedKingCard) lastPlayedCard);
+    }
+
+    // loadImages will use this  to load the specific cards
+    // so that you can just run loadImages once and load all the cards
+    public void loadCardImage(PApplet app, RedKingCard card) {
+        card.img = app.loadImage("data/" + card.value + card.suit + ".png");
+    }
+
 
     @Override
     protected void createDeck() {
@@ -41,9 +67,9 @@ public class RedKing extends CardGame {
                     deck.add(createCard(color, "Jack", 11));
                 } else if (value == "Queen") {
                     deck.add(createCard(color, "Queen", 12));
-                } else if (value == "King" && (color == "Hearts" || color == "Diamonds")) {
+                } else if (value == "King" && (color == "Heart" || color == "Diamond")) {
                     deck.add(createCard(color, "King", 0));
-                } else if (value == "King" && (color == "Spades" || color == "Clovers")) {
+                } else if (value == "King" && (color == "Spade" || color == "Clover")) {
                     deck.add(createCard(color, "King", 13));
                 } else if (value == "Ace") {
                     deck.add(createCard(color, "Ace", 1));
@@ -89,6 +115,16 @@ public class RedKing extends CardGame {
 
         playerOneHand.positionCardsInGrid(20, 270, 80, 120, 130, 2);
         playerTwoHand.positionCardsInGrid(370, 50, 80, 120, 130, 2);
+    }
+
+    @Override
+    public void turnCardsAgain() {
+        for (int i = 0; i < playerOneHand.getSize(); i++) {
+            Card card = playerOneHand.getCard(i);
+            if (card != null && card != lookCard) {
+                card.setTurned(true);
+            }
+        }
     }
 
     @Override
@@ -467,7 +503,7 @@ public class RedKing extends CardGame {
         }
 
         app.push();
-        app.fill(200);
+        app.fill(247, 106, 106);
         app.rect(endButton.x, endButton.y, endButton.width, endButton.height, 6);
         app.fill(0);
         app.text("End Game", endButton.x + endButton.width / 2, endButton.y + endButton.height / 2);
@@ -484,7 +520,7 @@ public class RedKing extends CardGame {
         // drawing the buttons
         for (int i = 0; i < ChoiceButtons.length; i++) {
             ClickableRectangle button = ChoiceButtons[i];
-            app.fill(200);
+            app.fill(247, 106, 106);
             app.rect(button.x, button.y, button.width, button.height, 6);
             app.fill(0);
             app.text(ChoiceLabels[i], button.x + button.width / 2, button.y + button.height / 2);
