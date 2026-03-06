@@ -77,6 +77,7 @@ public class App extends PApplet {
     public void mousePressed() {
         cardGame.handleDrawButtonClick(mouseX, mouseY);
         cardGame.handleCardClick(mouseX, mouseY);
+       ((RedKing) cardGame).handleEndClick(mouseX, mouseY);
     }
 
 }
